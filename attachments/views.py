@@ -43,7 +43,13 @@ def attach(request, session_id):
             # After attached file is placed in a temporary file and ATTACHMENTS_CLAMD is active scan it for viruses:
             if getattr(settings, 'ATTACHMENTS_CLAMD', False):
                 import pyclamd
-                cd = pyclamd.ClamdUnixSocket()
+                clamd_network_settings = getattr(settings, 'ATTACHMENTS_CLAMD_NETWORK_SETTINGS', {})
+                # If network settings are provided we use them to establish a socket connection
+                if clamd_network_settings:
+                    # ClamdNetworkSocket accepts 'host', 'port', and 'timeout' as keys in ATTACHMENTS_CLAMD_NETWORK_SETTINGS
+                    cd = pyclamd.ClamdNetworkSocket(**clamd_network_settings)
+                else:
+                    cd = pyclamd.ClamdUnixSocket()
                 virus = cd.scan_file(path)
                 if virus is not None:
                     # if ATTACHMENTS_QUARANTINE_PATH is set, move the offending file to the quaranine, otherwise delete
